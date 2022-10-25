@@ -42,7 +42,7 @@ func Run() {
 				continue
 			}
 		}
-		// Set Command
+
 		dns.HandleFunc(".", AgentHandler)
 
 		// Wait for full reply
