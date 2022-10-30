@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/erdaltsksn/cui"
 	"github.com/miekg/dns"
 )
 
@@ -27,7 +26,7 @@ func main() {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			cui.Error("Failed to setup the server", err)
+			fmt.Println(err)
 		}
 		defer server.Listener.Close()
 	}()
