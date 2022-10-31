@@ -13,10 +13,9 @@ import (
 )
 
 const (
-	host        = "127.0.0.1:8053"
-	maxMsgLen   = 66
-	metaInfoLen = 30
-	delay       = 500 * time.Millisecond
+	host      = "127.0.0.1:8053"
+	maxMsgLen = 66
+	delay     = 500 * time.Millisecond
 )
 
 var questionBeamUri = "0.0.0.syl.sh."
